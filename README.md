@@ -32,12 +32,6 @@ pod 'SwiftSnapshotTesting'
   class MyCoolUITest: SnapshotTestCase { ...
   ```
 
-* Start session and try to connect to `Monitor` automatically
-
-  ```Swift
-  bridge.tryToConnect()
-  ```
-
 * Choose folder on your Mac to store the reference snapshots by overriding `snapshotsReferencesFolder` variable
 
   ```Swift
