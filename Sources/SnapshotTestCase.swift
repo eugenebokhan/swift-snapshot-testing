@@ -21,11 +21,7 @@ open class SnapshotTestCase: XCTestCase {
     private lazy var textureDifference = try! TextureDifferenceHighlight(context: self.context)
     private lazy var l2Distance = try! EuclideanDistance(context: self.context)
     private let device = Device.current
-    #if targetEnvironment(simulator)
-    private let fileManager = FileManager.default
-    #else
     private let bridge = try! ResourcesBridge()
-    #endif
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -135,9 +131,7 @@ open class SnapshotTestCase: XCTestCase {
                        testName: String,
                        threshold: Float = 10,
                        recording: Bool = false) throws {
-        #if !targetEnvironment(simulator)
         self.bridge.waitForConnection()
-        #endif
 
         let fileExtension = ".compressedTexture"
         let screenshotRemotePath = self.snapshotsReferencesFolder
@@ -145,42 +139,20 @@ open class SnapshotTestCase: XCTestCase {
                                  + fileExtension
 
         let textureData = try self.encoder.encode(texture.codable()).compressed()
-        let resourceURL = URL(fileURLWithPath: screenshotRemotePath)
 
         if recording {
-            #if targetEnvironment(simulator)
-            let resourceFolder = resourceURL.deletingLastPathComponent()
-            var isDirectory: ObjCBool = true
-            if !self.fileManager.fileExists(atPath: resourceFolder.path,
-                                            isDirectory: &isDirectory) {
-                try self.fileManager.createDirectory(at: resourceFolder,
-                                                     withIntermediateDirectories: true,
-                                                     attributes: nil)
-            }
-
-            if self.fileManager.fileExists(atPath: screenshotRemotePath) {
-                try self.fileManager.removeItem(atPath: screenshotRemotePath)
-            }
-            try textureData.write(to: resourceURL)
-            #else
             try self.bridge.writeResourceSynchronously(resource: textureData,
                                                        at: screenshotRemotePath) { progress in
                 #if DEBUG
                 print("Sending: \(progress)")
                 #endif
             }
-            #endif
         } else {
-            let data: Data
-            #if targetEnvironment(simulator)
-            data = try .init(contentsOf: resourceURL)
-            #else
-            data = try self.bridge.readResourceSynchronously(at: screenshotRemotePath) { progress in
+            let data = try self.bridge.readResourceSynchronously(at: screenshotRemotePath) { progress in
                 #if DEBUG
                 print("Receiving: \(progress)")
                 #endif
             }
-            #endif
 
             let referenceTexture = try self.decoder
                                            .decode(MTLTextureCodableBox.self,
