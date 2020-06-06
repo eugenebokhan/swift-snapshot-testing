@@ -23,5 +23,6 @@ Pod::Spec.new do |s|
   
   s.dependency "ResourcesBridge"
   s.dependency "Alloy/Shaders"
+  s.dependency "DeviceKit"
   s.frameworks = "XCTest","UIKit","Foundation","QuartzCore"
 end
