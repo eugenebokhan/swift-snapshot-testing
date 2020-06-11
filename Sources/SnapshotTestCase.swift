@@ -2,6 +2,7 @@ import XCTest
 import Alloy
 import ResourcesBridge
 import DeviceKit
+import UIKit
 
 open class SnapshotTestCase: XCTestCase {
 
@@ -17,6 +18,7 @@ open class SnapshotTestCase: XCTestCase {
     // MARK: - Private Properties
 
     private let context = try! MTLContext()
+    private lazy var rectangleRenderer = try! RectangleRenderer(context: self.context)
     private lazy var textureCopy = try! TextureCopy(context: self.context)
     private lazy var textureDifference = try! TextureDifferenceHighlight(context: self.context)
     private lazy var l2Distance = try! EuclideanDistance(context: self.context)
@@ -34,8 +36,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(element: XCUIElement,
                        testName: String,
-                       threshold: Float = 10,
-                       recording: Bool = false) throws {
+                       options: SnapshotOptions) throws {
         XCTAssert(element.exists)
         XCTAssert(element.isHittable)
 
@@ -68,91 +69,120 @@ open class SnapshotTestCase: XCTestCase {
 
         try self.assert(texture: elementTexture,
                         testName: testName,
-                        threshold: threshold,
-                        recording: recording)
+                        options: options)
     }
 
     public func assert(screenshot: XCUIScreenshot,
                        testName: String,
                        ignoreStatusBar: Bool = true,
-                       threshold: Float = 10,
-                       recording: Bool = false) throws {
-        let texture: MTLTexture
-
+                       options: SnapshotOptions) throws {
         guard let cgImage = screenshot.image.cgImage
         else { throw Error.snaphotAssertingFailed }
         let screenTexture = try self.context.texture(from: cgImage, srgb: false)
 
         if ignoreStatusBar {
             var yOffset: CGFloat = 0
-            if !self.device.isOneOf(Device.allDevicesWithSensorHousing) {
+            let sensorHousing = Device.allDevicesWithSensorHousing + Device.allSimulatorDevicesWithSensorHousing
+            let plusSized = Device.allPlusSizedDevices + Device.allSimulatorPlusSizedDevices
+            if !self.device.isOneOf(sensorHousing) {
                 yOffset = 22
-            } else if self.device.isOneOf(Device.allDevicesWithSensorHousing)
-                   && !self.device.isOneOf(Device.allPlusSizedDevices) {
+            } else if self.device.isOneOf(sensorHousing)
+                   && !self.device.isOneOf(plusSized) {
                 yOffset = 44
-            } else if self.device.isOneOf(Device.allDevicesWithSensorHousing)
-                   && self.device.isOneOf(Device.allPlusSizedDevices) {
+            } else if self.device.isOneOf(sensorHousing)
+                   && self.device.isOneOf(plusSized) {
                 yOffset = 48.6
             }
-
-            let appFrame = XCUIApplication().frame
-
-            let origin = MTLOrigin(x: 0,
-                                   y: .init(yOffset / appFrame.height * .init(cgImage.height)),
-                                   z: 0)
-            let size = MTLSize(width: screenTexture.width,
-                               height: screenTexture.height - origin.x,
-                               depth: 1)
-            let region = MTLRegion(origin: origin,
-                                   size: size)
-
-            texture = try self.context.texture(width: region.size.width,
-                                               height: region.size.height,
-                                               pixelFormat: .bgra8Unorm,
-                                               usage: [.shaderRead, .shaderWrite])
-            try self.context.scheduleAndWait { commandBuffer in
-                self.textureCopy.copy(region: region,
-                                      from: screenTexture,
-                                      to: .zero,
-                                      of: texture,
-                                      in: commandBuffer)
-            }
+            
+            let statusBarRect = CGRect(x: 0, y: 0, width: CGFloat(screenTexture.width), height: yOffset)
+            
+            var options = options
+            options.ignoreRects.append(statusBarRect)
+            
+            try self.assert(texture: screenTexture,
+                            testName: testName,
+                            options: options)
         } else {
-            texture = screenTexture
+            try self.assert(texture: screenTexture,
+                            testName: testName,
+                            options: options)
         }
-
-        try self.assert(texture: texture,
-                        testName: testName,
-                        threshold: threshold,
-                        recording: recording)
     }
 
     public func assert(texture: MTLTexture,
                        testName: String,
-                       threshold: Float = 10,
-                       recording: Bool = false) throws {
+                       options: SnapshotOptions) throws {
+        
+        #if !targetEnvironment(simulator)
         self.bridge.waitForConnection()
+        #endif
 
         let fileExtension = ".compressedTexture"
-        let screenshotRemotePath = self.snapshotsReferencesFolder
+        let referenceScreenshotPath = self.snapshotsReferencesFolder
                                  + testName.sanitizedPathComponent
                                  + fileExtension
-
-        let textureData = try self.encoder.encode(texture.codable()).compressed()
-
-        if recording {
-            try self.bridge.writeResourceSynchronously(resource: textureData,
-                                                       at: screenshotRemotePath) { progress in
-                #if DEBUG
-                print("Sending: \(progress)")
+        
+        if !options.ignoreRects.isEmpty {
+            let scale = UIScreen.main.scale
+            let renderPassDescriptor = MTLRenderPassDescriptor()
+            renderPassDescriptor.colorAttachments[0].texture = texture
+            renderPassDescriptor.colorAttachments[0].loadAction = .load
+            renderPassDescriptor.colorAttachments[0].storeAction = .store
+            let referenceSize = CGSize(width: CGFloat(texture.width) / scale,
+                                       height: CGFloat(texture.height) / scale)
+            let referenceRect = CGRect(origin: .zero, size: referenceSize)
+            rectangleRenderer.color = .init(0, 0, 0, 1)
+            try self.context.scheduleAndWait { commandBuffer in
+                for rect in options.ignoreRects {
+                    rectangleRenderer.normalizedRect = rect.normalized(reference: referenceRect)
+                    try rectangleRenderer.render(renderPassDescriptor: renderPassDescriptor,
+                                                 commandBuffer: commandBuffer)
+                }
+            }
+        }
+        
+        if options.savePreview {
+            let previewScreenshotPath = self.snapshotsReferencesFolder
+                + testName.sanitizedPathComponent
+                + ".png"
+            if let previewData = try texture.image().pngData() {
+                #if targetEnvironment(simulator)
+                try previewData.write(to: URL(fileURLWithPath: previewScreenshotPath))
+                #else
+                try self.bridge.writeResourceSynchronously(resource: previewData,
+                                                           at: previewScreenshotPath) { progress in
+                    #if DEBUG
+                    print("Sending reference: \(progress)")
+                    #endif
+                }
                 #endif
             }
+        }
+        
+        if options.recording {
+            let textureData = try self.encoder.encode(texture.codable()).compressed()
+            
+            #if targetEnvironment(simulator)
+            try textureData.write(to: URL(fileURLWithPath: referenceScreenshotPath))
+            #else
+            try self.bridge.writeResourceSynchronously(resource: textureData,
+                                                       at: referenceScreenshotPath) { progress in
+                #if DEBUG
+                print("Sending reference: \(progress)")
+                #endif
+            }
+            #endif
         } else {
-            let data = try self.bridge.readResourceSynchronously(at: screenshotRemotePath) { progress in
+            let data: Data
+            #if targetEnvironment(simulator)
+            data = try Data(contentsOf: URL(fileURLWithPath: referenceScreenshotPath))
+            #else
+            data = try self.bridge.readResourceSynchronously(at: referenceScreenshotPath) { progress in
                 #if DEBUG
                 print("Receiving: \(progress)")
                 #endif
             }
+            #endif
 
             let referenceTexture = try self.decoder
                                            .decode(MTLTextureCodableBox.self,
@@ -192,7 +222,7 @@ open class SnapshotTestCase: XCTestCase {
             differenceAttachment.lifetime = .keepAlways
             self.add(differenceAttachment)
 
-            XCTAssertLessThan(distance, threshold)
+            XCTAssertLessThan(distance, options.threshold.toEucledean())
         }
     }
 
@@ -208,6 +238,17 @@ private extension String {
         self = staticString.withUTF8Buffer {
             String(decoding: $0, as: UTF8.self)
         }
+    }
+}
+
+private extension CGRect {
+    func normalized(reference: CGRect) -> CGRect {
+        return CGRect(
+            x: min(self.origin.x / reference.width, 1),
+            y: min(self.origin.y / reference.height, 1),
+            width: min(self.size.width / reference.width, 1),
+            height: min(self.size.height / reference.height, 1)
+        )
     }
 }
 
