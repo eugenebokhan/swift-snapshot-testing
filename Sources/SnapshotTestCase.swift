@@ -43,7 +43,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(element: XCUIElement,
                        testName: String,
-                       options: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration) throws {
         XCTAssert(element.exists)
         XCTAssert(element.isHittable)
 
@@ -76,13 +76,13 @@ open class SnapshotTestCase: XCTestCase {
 
         try self.assert(texture: elementTexture,
                         testName: testName,
-                        options: options)
+                        configuration: configuration)
     }
 
     public func assert(screenshot: XCUIScreenshot,
                        testName: String,
                        ignoreStatusBar: Bool = true,
-                       options: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration) throws {
         guard let cgImage = screenshot.image.cgImage
         else { throw Error.snaphotAssertingFailed }
         let screenTexture = try self.context.texture(from: cgImage, srgb: false)
@@ -108,22 +108,22 @@ open class SnapshotTestCase: XCTestCase {
                                        width: .init(screenTexture.width),
                                        height: yOffset)
             
-            var options = options
+            var options = configuration
             options.ignoreRects.append(statusBarRect)
             
             try self.assert(texture: screenTexture,
                             testName: testName,
-                            options: options)
+                            configuration: configuration)
         } else {
             try self.assert(texture: screenTexture,
                             testName: testName,
-                            options: options)
+                            configuration: configuration)
         }
     }
 
     public func assert(texture: MTLTexture,
                        testName: String,
-                       options: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration) throws {
         
         #if !targetEnvironment(simulator)
         self.bridge.waitForConnection()
@@ -134,7 +134,7 @@ open class SnapshotTestCase: XCTestCase {
                                     + testName.sanitizedPathComponent
                                     + fileExtension
         
-        if !options.ignoreRects.isEmpty {
+        if !configuration.ignoreRects.isEmpty {
             let scale = UIScreen.main.scale
             rectsPassDescriptor.colorAttachments[0].texture = texture
             let referenceSize = CGSize(width: CGFloat(texture.width) / scale,
@@ -142,7 +142,7 @@ open class SnapshotTestCase: XCTestCase {
             let referenceRect = CGRect(origin: .zero, size: referenceSize)
             rectangleRenderer.color = .init(0, 0, 0, 1)
             try self.context.scheduleAndWait { commandBuffer in
-                for rect in options.ignoreRects {
+                for rect in configuration.ignoreRects {
                     rectangleRenderer.normalizedRect = rect.normalized(reference: referenceRect)
                     try rectangleRenderer.render(renderPassDescriptor: self.rectsPassDescriptor,
                                                  commandBuffer: commandBuffer)
@@ -150,7 +150,7 @@ open class SnapshotTestCase: XCTestCase {
             }
         }
         
-        if options.recording {
+        if configuration.recording {
             let textureData = try self.encoder.encode(texture.codable()).compressed()
             
             #if targetEnvironment(simulator)
@@ -195,7 +195,7 @@ open class SnapshotTestCase: XCTestCase {
                 self.textureDifference.encode(sourceTextureOne: texture,
                                               sourceTextureTwo: referenceTexture,
                                               destinationTexture: differenceTexture,
-                                              color: options.differenceColor,
+                                              color: configuration.diffHighlightColor,
                                               threshold: 0.01,
                                               in: commandBuffer)
             }
@@ -213,7 +213,7 @@ open class SnapshotTestCase: XCTestCase {
             differenceAttachment.lifetime = .keepAlways
             self.add(differenceAttachment)
 
-            XCTAssertLessThan(distance, options.comparingPolicy.toEucledean())
+            XCTAssertLessThan(distance, configuration.comparisonPolicy.toEucledean())
         }
     }
 
