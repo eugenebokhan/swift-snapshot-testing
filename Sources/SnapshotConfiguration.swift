@@ -1,7 +1,8 @@
 import Foundation
+import XCTest
 
 public struct SnapshotConfiguration {
-    public var ignoreRects: [CGRect]
+    public var ignorables: [Ignorable]
     public var comparisonPolicy: ComparisonPolicy
     public var diffHighlightColor: SIMD4<Float>
     public var recording: Bool
@@ -9,11 +10,11 @@ public struct SnapshotConfiguration {
     
     public init(comparisonPolicy: ComparisonPolicy = .eucledean(10),
                 diffHighlightColor: SIMD4<Float> = .init(1, 0, 0, 1),
-                ignoreRects: [CGRect] = [],
+                ignore ignorables: [Ignorable] = [],
                 recording: Bool = false) {
         self.comparisonPolicy = comparisonPolicy
         self.diffHighlightColor = diffHighlightColor
-        self.ignoreRects = ignoreRects
+        self.ignorables = ignorables
         self.recording = recording
     }
 }
@@ -26,5 +27,23 @@ public enum ComparisonPolicy {
         case let .eucledean(threshold):
             return threshold
         }
+    }
+}
+
+public protocol Ignorable {
+    var ignoreFrame: CGRect { get }
+}
+
+extension XCUIElement: Ignorable {
+    public var ignoreFrame: CGRect {
+        return frame
+    }
+}
+
+public struct IgnoreFrame: Ignorable {
+    public var ignoreFrame: CGRect
+    
+    public init(_ frame: CGRect) {
+        self.ignoreFrame = frame
     }
 }

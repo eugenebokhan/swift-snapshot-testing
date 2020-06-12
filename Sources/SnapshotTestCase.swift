@@ -109,7 +109,7 @@ open class SnapshotTestCase: XCTestCase {
                                        height: yOffset)
             
             var options = configuration
-            options.ignoreRects.append(statusBarRect)
+            options.ignorables.append(IgnoreFrame(statusBarRect))
             
             try self.assert(texture: screenTexture,
                             testName: testName,
@@ -134,7 +134,7 @@ open class SnapshotTestCase: XCTestCase {
                                     + testName.sanitizedPathComponent
                                     + fileExtension
         
-        if !configuration.ignoreRects.isEmpty {
+        if !configuration.ignorables.isEmpty {
             let scale = UIScreen.main.scale
             rectsPassDescriptor.colorAttachments[0].texture = texture
             let referenceSize = CGSize(width: CGFloat(texture.width) / scale,
@@ -142,8 +142,8 @@ open class SnapshotTestCase: XCTestCase {
             let referenceRect = CGRect(origin: .zero, size: referenceSize)
             rectangleRenderer.color = .init(0, 0, 0, 1)
             try self.context.scheduleAndWait { commandBuffer in
-                for rect in configuration.ignoreRects {
-                    rectangleRenderer.normalizedRect = rect.normalized(reference: referenceRect)
+                for ignorable in configuration.ignorables {
+                    rectangleRenderer.normalizedRect = ignorable.ignoreFrame.normalized(reference: referenceRect)
                     try rectangleRenderer.render(renderPassDescriptor: self.rectsPassDescriptor,
                                                  commandBuffer: commandBuffer)
                 }
