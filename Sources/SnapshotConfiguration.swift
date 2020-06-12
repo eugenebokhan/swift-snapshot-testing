@@ -36,7 +36,7 @@ public protocol Ignorable {
 
 extension XCUIElement: Ignorable {
     public var ignoreFrame: CGRect {
-        return frame
+        self.frame
     }
 }
 
