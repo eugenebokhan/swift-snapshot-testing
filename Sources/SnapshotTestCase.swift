@@ -26,6 +26,13 @@ open class SnapshotTestCase: XCTestCase {
     private let bridge = try! ResourcesBridge()
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    
+    private lazy var rectsPassDescriptor: MTLRenderPassDescriptor = {
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.colorAttachments[0].loadAction = .load
+        descriptor.colorAttachments[0].storeAction = .store
+        return descriptor
+    }()
 
 
     public func testName(funcName: String = #function,
@@ -36,7 +43,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(element: XCUIElement,
                        testName: String,
-                       options: SnapshotOptions) throws {
+                       options: SnapshotConfiguration) throws {
         XCTAssert(element.exists)
         XCTAssert(element.isHittable)
 
@@ -75,15 +82,17 @@ open class SnapshotTestCase: XCTestCase {
     public func assert(screenshot: XCUIScreenshot,
                        testName: String,
                        ignoreStatusBar: Bool = true,
-                       options: SnapshotOptions) throws {
+                       options: SnapshotConfiguration) throws {
         guard let cgImage = screenshot.image.cgImage
         else { throw Error.snaphotAssertingFailed }
         let screenTexture = try self.context.texture(from: cgImage, srgb: false)
 
         if ignoreStatusBar {
             var yOffset: CGFloat = 0
-            let sensorHousing = Device.allDevicesWithSensorHousing + Device.allSimulatorDevicesWithSensorHousing
-            let plusSized = Device.allPlusSizedDevices + Device.allSimulatorPlusSizedDevices
+            let sensorHousing = Device.allDevicesWithSensorHousing
+                              + Device.allSimulatorDevicesWithSensorHousing
+            let plusSized = Device.allPlusSizedDevices
+                          + Device.allSimulatorPlusSizedDevices
             if !self.device.isOneOf(sensorHousing) {
                 yOffset = 22
             } else if self.device.isOneOf(sensorHousing)
@@ -94,7 +103,10 @@ open class SnapshotTestCase: XCTestCase {
                 yOffset = 48.6
             }
             
-            let statusBarRect = CGRect(x: 0, y: 0, width: CGFloat(screenTexture.width), height: yOffset)
+            let statusBarRect = CGRect(x: .zero,
+                                       y: .zero,
+                                       width: .init(screenTexture.width),
+                                       height: yOffset)
             
             var options = options
             options.ignoreRects.append(statusBarRect)
@@ -111,7 +123,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(texture: MTLTexture,
                        testName: String,
-                       options: SnapshotOptions) throws {
+                       options: SnapshotConfiguration) throws {
         
         #if !targetEnvironment(simulator)
         self.bridge.waitForConnection()
@@ -119,15 +131,12 @@ open class SnapshotTestCase: XCTestCase {
 
         let fileExtension = ".compressedTexture"
         let referenceScreenshotPath = self.snapshotsReferencesFolder
-                                 + testName.sanitizedPathComponent
-                                 + fileExtension
+                                    + testName.sanitizedPathComponent
+                                    + fileExtension
         
         if !options.ignoreRects.isEmpty {
             let scale = UIScreen.main.scale
-            let renderPassDescriptor = MTLRenderPassDescriptor()
-            renderPassDescriptor.colorAttachments[0].texture = texture
-            renderPassDescriptor.colorAttachments[0].loadAction = .load
-            renderPassDescriptor.colorAttachments[0].storeAction = .store
+            rectsPassDescriptor.colorAttachments[0].texture = texture
             let referenceSize = CGSize(width: CGFloat(texture.width) / scale,
                                        height: CGFloat(texture.height) / scale)
             let referenceRect = CGRect(origin: .zero, size: referenceSize)
@@ -135,27 +144,9 @@ open class SnapshotTestCase: XCTestCase {
             try self.context.scheduleAndWait { commandBuffer in
                 for rect in options.ignoreRects {
                     rectangleRenderer.normalizedRect = rect.normalized(reference: referenceRect)
-                    try rectangleRenderer.render(renderPassDescriptor: renderPassDescriptor,
+                    try rectangleRenderer.render(renderPassDescriptor: self.rectsPassDescriptor,
                                                  commandBuffer: commandBuffer)
                 }
-            }
-        }
-        
-        if options.savePreview {
-            let previewScreenshotPath = self.snapshotsReferencesFolder
-                + testName.sanitizedPathComponent
-                + ".png"
-            if let previewData = try texture.image().pngData() {
-                #if targetEnvironment(simulator)
-                try previewData.write(to: URL(fileURLWithPath: previewScreenshotPath))
-                #else
-                try self.bridge.writeResourceSynchronously(resource: previewData,
-                                                           at: previewScreenshotPath) { progress in
-                    #if DEBUG
-                    print("Sending reference: \(progress)")
-                    #endif
-                }
-                #endif
             }
         }
         
@@ -204,7 +195,7 @@ open class SnapshotTestCase: XCTestCase {
                 self.textureDifference.encode(sourceTextureOne: texture,
                                               sourceTextureTwo: referenceTexture,
                                               destinationTexture: differenceTexture,
-                                              color: .init(1, 0, 0, 1),
+                                              color: options.differenceColor,
                                               threshold: 0.01,
                                               in: commandBuffer)
             }
@@ -222,40 +213,9 @@ open class SnapshotTestCase: XCTestCase {
             differenceAttachment.lifetime = .keepAlways
             self.add(differenceAttachment)
 
-            XCTAssertLessThan(distance, options.threshold.toEucledean())
+            XCTAssertLessThan(distance, options.comparingPolicy.toEucledean())
         }
     }
 
     private static let textureUTI = "com.eugenebokhan.mtltextureviewer.texture"
-}
-
-private extension String {
-    var sanitizedPathComponent: String {
-        self.replacingOccurrences(of: "\\W+", with: "-", options: .regularExpression)
-            .replacingOccurrences(of: "^-|-$", with: "", options: .regularExpression)
-    }
-    init(_ staticString: StaticString) {
-        self = staticString.withUTF8Buffer {
-            String(decoding: $0, as: UTF8.self)
-        }
-    }
-}
-
-private extension CGRect {
-    func normalized(reference: CGRect) -> CGRect {
-        return CGRect(
-            x: min(self.origin.x / reference.width, 1),
-            y: min(self.origin.y / reference.height, 1),
-            width: min(self.size.width / reference.width, 1),
-            height: min(self.size.height / reference.height, 1)
-        )
-    }
-}
-
-extension MTLSize: Equatable {
-    public static func == (lhs: MTLSize, rhs: MTLSize) -> Bool {
-        return lhs.width == rhs.width
-            && lhs.height == rhs.height
-            && lhs.depth == rhs.depth
-    }
 }
