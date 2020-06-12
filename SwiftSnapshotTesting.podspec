@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = "SwiftSnapshotTesting"
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.summary = "Swift Snapshot Testing"
   s.homepage = "https://github.com/eugenebokhan/SwiftSnapshotTesting"
