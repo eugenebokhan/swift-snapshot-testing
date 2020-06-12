@@ -17,6 +17,7 @@ open class SnapshotTestCase: XCTestCase {
 
     // MARK: - Private Properties
 
+    private let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     private let context = try! MTLContext()
     private lazy var rectangleRenderer = try! RectangleRenderer(context: self.context)
     private lazy var textureCopy = try! TextureCopy(context: self.context)
@@ -43,7 +44,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(element: XCUIElement,
                        testName: String,
-                       configuration: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration = .init()) throws {
         XCTAssert(element.exists)
         XCTAssert(element.isHittable)
 
@@ -82,34 +83,14 @@ open class SnapshotTestCase: XCTestCase {
     public func assert(screenshot: XCUIScreenshot,
                        testName: String,
                        ignoreStatusBar: Bool = true,
-                       configuration: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration = .init()) throws {
         guard let cgImage = screenshot.image.cgImage
         else { throw Error.snaphotAssertingFailed }
         let screenTexture = try self.context.texture(from: cgImage, srgb: false)
 
         if ignoreStatusBar {
-            var yOffset: CGFloat = 0
-            let sensorHousing = Device.allDevicesWithSensorHousing
-                              + Device.allSimulatorDevicesWithSensorHousing
-            let plusSized = Device.allPlusSizedDevices
-                          + Device.allSimulatorPlusSizedDevices
-            if !self.device.isOneOf(sensorHousing) {
-                yOffset = 22
-            } else if self.device.isOneOf(sensorHousing)
-                   && !self.device.isOneOf(plusSized) {
-                yOffset = 44
-            } else if self.device.isOneOf(sensorHousing)
-                   && self.device.isOneOf(plusSized) {
-                yOffset = 48.6
-            }
-            
-            let statusBarRect = CGRect(x: .zero,
-                                       y: .zero,
-                                       width: .init(screenTexture.width),
-                                       height: yOffset)
-            
-            var options = configuration
-            options.ignorables.append(IgnoreFrame(statusBarRect))
+            var configuration = configuration
+            configuration.ignorables.append(self.springboard.statusBars.firstMatch)
             
             try self.assert(texture: screenTexture,
                             testName: testName,
@@ -123,7 +104,7 @@ open class SnapshotTestCase: XCTestCase {
 
     public func assert(texture: MTLTexture,
                        testName: String,
-                       configuration: SnapshotConfiguration) throws {
+                       configuration: SnapshotConfiguration = .init()) throws {
         
         #if !targetEnvironment(simulator)
         self.bridge.waitForConnection()
