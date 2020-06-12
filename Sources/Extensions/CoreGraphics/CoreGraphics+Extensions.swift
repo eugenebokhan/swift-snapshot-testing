@@ -8,3 +8,10 @@ extension CGRect {
                      height: min(self.size.height / reference.height, 1))
     }
 }
+
+extension CGRect: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self.origin)
+        hasher.combine(self.size)
+    }
+}
