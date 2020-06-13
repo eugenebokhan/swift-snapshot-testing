@@ -1,5 +1,9 @@
 # SwiftSnapshotTesting
 
+<p align="left">
+    <img src="Media/snapshot.jpeg", width="100">
+</p>
+
 This project's purpose is to simplify UI testing on iOS.
 
 `SwiftSnapshotTesting` helps to check application's UI with a few lines of code. No need to manually manage reference images any more.
@@ -40,18 +44,21 @@ pod 'SwiftSnapshotTesting'
   }
   ```
 
-* Assert any UI element
+
+* Assert UI element
 
   ```Swift
   assert(element: XCUIElement,
          testName: String,
-         threshold: Float = 10,
-         recording: Bool = false) throws
+         ignore rects: Set<CGRect>,
+         configuration: Configuration,
+         recording: Bool) throws
   ```
 
-  * `element` - element to compare
+  * `element` - element to compare.
   * `testName` - name of the test. It will be used in the name of the reference image file
-  * `threshold` - the threshold used to compare element with its reference image
+  * `rects` - rects (possible subviews' frames) to ignore.
+  * `configuration` current test configuration.
   * `recording` - by setting `true` this argument you will record the reference snapshot. By setting `false` you will compare the element with previously recorded snapshot.
 
 
@@ -60,23 +67,21 @@ pod 'SwiftSnapshotTesting'
   ```Swift
   assert(screenshot: XCUIScreenshot,
          testName: String,
-         ignoreStatusBar: Bool = true,
-         threshold: Float = 10,
-         recording: Bool = false) throws
+         ignore ignorables: Set<Ignorable>],
+         configuration: Configuration,
+         recording: Bool) throws
   ```
 
-* Assert any `MTLTexture`
+  * `screenshot` - screenshot to test.
+  * `ignorables` - UI elements to ignore. `Ignorable` can be `XCUIElement`, custom `CGRect` or predefined `.statusBar`.
 
-  ```Swift
-  assert(texture: MTLTexture,
-         testName: String,
-         threshold: Float = 10,
-         recording: Bool = false) throws
-  ```
+# XCTAttachment
 
-## Example
+After each assertion test `SnapshotTestCase` provides an attachment containing per-pixel L2 distance between snapshot and the corresponding reference and `MTLTexture` with highlighted difference. You are able to look at the diff using [`MTLTextureViewer`](https://github.com/eugenebokhan/MTLTextureViewer/).
 
-Your can find a small [example](https://github.com/eugenebokhan/Image-Flip/blob/master/ImageFlip/ImageFlipUITests/ImageFlipUITests.swift) of usage of `SwiftSnapshotTesting` in my [`ImageFlip`](https://github.com/eugenebokhan/Image-Flip) repo.
+# Example
+
+Your can find a small [example](https://github.com/eugenebokhan/ImageFlip/blob/master/ImageFlipUITests/ImageFlipUITests.swift) of usage of `SwiftSnapshotTesting` in my [`ImageFlip`](https://github.com/eugenebokhan/ImageFlip/) repo.
 
 # [License](LICENSE)
 

@@ -6,12 +6,15 @@ import ResourcesBridge
 
 open class SnapshotTestCase: XCTestCase {
     
+    /// Snapshot configuration.
     public struct Configuration {
         
+        /// The way of comparing snapshots with reference images.
         public enum ComparisonPolicy {
+            /// Per-pixel L2 distance.
             case eucledean(Float)
             
-            func toEucledean() -> Float {
+            fileprivate func toEucledean() -> Float {
                 switch self {
                 case let .eucledean(threshold):
                     return threshold
@@ -19,7 +22,9 @@ open class SnapshotTestCase: XCTestCase {
             }
         }
         
+        /// The way of comparing snapshots with reference images.
         public var comparisonPolicy: ComparisonPolicy
+        /// The color of the highligted difference in the test attachment.
         public var diffHighlightColor: SIMD4<Float>
         
         public init(comparisonPolicy: ComparisonPolicy = .eucledean(10),
@@ -31,6 +36,7 @@ open class SnapshotTestCase: XCTestCase {
         public static let `default` = Configuration()
     }
     
+    /// Element to ignore while asserting snapshot.
     public enum Ignorable: Hashable {
         case element(XCUIElement)
         case rect(CGRect)
@@ -47,11 +53,27 @@ open class SnapshotTestCase: XCTestCase {
 
     public enum Error: Swift.Error {
         case resourceSendingFailed
-        case snaphotAssertingFailed
+        case cgImageCreeationFailed
+        case recordModeIsOn
+        
+        var localizedDescription: String {
+            switch self {
+            case .resourceSendingFailed:
+                return "Failed to send reference snapshot."
+            case .cgImageCreeationFailed:
+                return "Failed to create a `CGImage` of current snapshot."
+            case .recordModeIsOn:
+                return """
+                Recording mode is on.
+                Turn recording mode off and re-run the test with the newly-recorded reference.
+                """
+            }
+        }
     }
 
     // MARK: - Public Properties
-
+    
+    /// The directory in Mac to save reference snapshots.
     open var snapshotsReferencesFolder: String { "/" }
 
     // MARK: - Private Properties
@@ -75,12 +97,25 @@ open class SnapshotTestCase: XCTestCase {
     }()
     
     // MARK: - Public
-
+    
+    /// Default test name used to give a snapshpot a unique name.
+    /// - Parameters:
+    ///   - funcName: Current test function.
+    ///   - line: The line of the assertion call.
+    /// - Returns: String including function name, line and device description.
     public func testName(funcName: String = #function,
                          line: Int = #line) -> String {
         return "\(funcName)-\(line)-\(UIDevice.modelName)"
     }
-
+    
+    /// Test `XCUIElement`.
+    /// - Parameters:
+    ///   - element: Element to test.
+    ///   - testName: Current test's name.
+    ///   - rects: Rects (possible subviews' frames) to ignore.
+    ///   - configuration: Current test configuration.
+    ///   - recording: Recording mode.
+    /// - Throws: Error on test fail.
     public func assert(element: XCUIElement,
                        testName: String,
                        ignore rects: Set<CGRect> = [],
@@ -91,7 +126,7 @@ open class SnapshotTestCase: XCTestCase {
 
         let screenshot = XCUIApplication().screenshot()
         guard let cgImage = screenshot.image.cgImage
-        else { throw Error.snaphotAssertingFailed }
+        else { throw Error.cgImageCreeationFailed }
 
         let appFrame = XCUIApplication().frame
         let elementFrame = element.frame
@@ -124,14 +159,22 @@ open class SnapshotTestCase: XCTestCase {
                         configuration: configuration,
                         recording: recording)
     }
-
+    
+    /// Test `XCUIScreenshot`.
+    /// - Parameters:
+    ///   - screenshot: Screenshot to test.
+    ///   - testName: Current test's name.
+    ///   - ignorables: UI elements to ignore.
+    ///   - configuration: Current test configurartion.
+    ///   - recording: Recording mode.
+    /// - Throws: Error on test fail.
     public func assert(screenshot: XCUIScreenshot,
                        testName: String,
                        ignore ignorables: Set<Ignorable> = [.statusBar],
                        configuration: Configuration = .default,
                        recording: Bool = false) throws {
         guard let cgImage = screenshot.image.cgImage
-        else { throw Error.snaphotAssertingFailed }
+        else { throw Error.cgImageCreeationFailed }
         let screenTexture = try self.context.texture(from: cgImage,
                                                      srgb: false)
 
@@ -141,7 +184,18 @@ open class SnapshotTestCase: XCTestCase {
                         configuration: configuration,
                         recording: recording)
     }
-
+    
+    /// Test `MTLTexture`.
+    ///
+    ///  This is a basic assertion function of this framework. Every element and screenshot is converted to texture and passed to this func.
+    ///
+    /// - Parameters:
+    ///   - texture: Texture to test.
+    ///   - testName: Current test's name.
+    ///   - rects: Rects to ignore.
+    ///   - configuration: Current test configurartion.
+    ///   - recording: Recording mode.
+    /// - Throws: Error on test fail.
     public func assert(texture: MTLTexture,
                        testName: String,
                        ignore rects: Set<CGRect> = [],
@@ -201,10 +255,7 @@ open class SnapshotTestCase: XCTestCase {
             }
             #endif
             
-            XCTFail("""
-                Turn recording mode off and re-run "\(testName)" to test against the newly-recorded reference.
-                """
-            )
+            throw Error.recordModeIsOn
         } else {
             let data: Data
             #if targetEnvironment(simulator)
