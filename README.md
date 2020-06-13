@@ -67,7 +67,7 @@ pod 'SwiftSnapshotTesting'
   ```Swift
   assert(screenshot: XCUIScreenshot,
          testName: String,
-         ignore ignorables: Set<Ignorable>],
+         ignore ignorables: Set<Ignorable>,
          configuration: Configuration,
          recording: Bool) throws
   ```
