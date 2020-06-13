@@ -63,10 +63,7 @@ open class SnapshotTestCase: XCTestCase {
             case .cgImageCreeationFailed:
                 return "Failed to create a `CGImage` of current snapshot."
             case .recordModeIsOn:
-                return """
-                Recording mode is on.
-                Turn recording mode off and re-run the test with the newly-recorded reference.
-                """
+                return "Recording mode is on."
             }
         }
     }
@@ -255,7 +252,10 @@ open class SnapshotTestCase: XCTestCase {
             }
             #endif
             
-            throw Error.recordModeIsOn
+            XCTFail("""
+                \(Error.recordModeIsOn.localizedDescription)
+                Turn recording mode off and re-run the \(testName) test with the newly-recorded reference.
+                """)
         } else {
             let data: Data
             #if targetEnvironment(simulator)
