@@ -81,7 +81,7 @@ After each assertion test `SnapshotTestCase` provides an attachment containing p
 
 # Example
 
-Your can find a small [example](https://github.com/eugenebokhan/ImageFlip/blob/master/ImageFlipUITests/ImageFlipUITests.swift) of usage of `SwiftSnapshotTesting` in my [`ImageFlip`](https://github.com/eugenebokhan/ImageFlip/) repo.
+Your can find a small [example](https://github.com/eugenebokhan/ImageFlip/blob/master/ImageFlipUITests/ImageFlipUITests.swift) of usage of `SwiftSnapshotTesting` in the [`ImageFlip`](https://github.com/eugenebokhan/ImageFlip/) repo.
 
 # [License](LICENSE)
 
