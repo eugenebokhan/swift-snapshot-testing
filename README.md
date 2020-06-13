@@ -1,7 +1,7 @@
 # SwiftSnapshotTesting
 
 <p align="left">
-    <img src="Media/snapshot.jpeg", width="100">
+    <img src="Media/snapshot.jpeg", width="160">
 </p>
 
 This project's purpose is to simplify UI testing on iOS.
