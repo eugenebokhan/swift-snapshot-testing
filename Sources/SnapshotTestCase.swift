@@ -14,10 +14,14 @@ open class SnapshotTestCase: XCTestCase {
             /// Per-pixel L2 distance.
             case eucledean(Float)
             
-            fileprivate func toEucledean() -> Float {
+            fileprivate var assertionThreshold: Float {
                 switch self {
-                case let .eucledean(threshold):
-                    return threshold
+                case .eucledean(_): return 0
+                }
+            }
+            fileprivate var threshold: Float {
+                switch self {
+                case let .eucledean(threshold): return threshold
                 }
             }
         }
@@ -27,7 +31,7 @@ open class SnapshotTestCase: XCTestCase {
         /// The color of the highligted difference in the test attachment.
         public var diffHighlightColor: SIMD4<Float>
         
-        public init(comparisonPolicy: ComparisonPolicy = .eucledean(10),
+        public init(comparisonPolicy: ComparisonPolicy = .eucledean(0.0),
                     diffHighlightColor: SIMD4<Float> = .init(1, 0, 0, 1)) {
             self.comparisonPolicy = comparisonPolicy
             self.diffHighlightColor = diffHighlightColor
@@ -283,13 +287,14 @@ open class SnapshotTestCase: XCTestCase {
             try self.context.scheduleAndWait { commandBuffer in
                 self.l2Distance(textureOne: texture,
                                 textureTwo: referenceTexture,
+                                threshold: configuration.comparisonPolicy.threshold,
                                 resultBuffer: distanceResultBuffer,
                                 in: commandBuffer)
                 self.textureDifference(sourceTextureOne: texture,
                                        sourceTextureTwo: referenceTexture,
                                        destinationTexture: differenceTexture,
                                        color: configuration.diffHighlightColor,
-                                       threshold: 0.01,
+                                       threshold: configuration.comparisonPolicy.threshold,
                                        in: commandBuffer)
             }
 
@@ -306,7 +311,7 @@ open class SnapshotTestCase: XCTestCase {
             differenceAttachment.lifetime = .keepAlways
             self.add(differenceAttachment)
 
-            XCTAssertLessThan(distance, configuration.comparisonPolicy.toEucledean())
+            XCTAssertLessThanOrEqual(distance, configuration.comparisonPolicy.assertionThreshold)
         }
     }
 }
