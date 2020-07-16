@@ -22,6 +22,7 @@ Pod::Spec.new do |s|
 
   s.subspec 'Device' do |device|
     device.source_files = "Sources/**/*.{swift,metal,h}"
+    device.private_header_files = "Sources/**/*.{h}"
     device.dependency "ResourcesBridge", "~> 0.0.1"
     device.dependency "Alloy/Shaders", "~> 0.14.2"
     device.frameworks = "XCTest","UIKit","Foundation","QuartzCore"
@@ -29,6 +30,7 @@ Pod::Spec.new do |s|
   
   s.subspec 'Simulator' do |simulator|
     simulator.source_files = "Sources/**/*.{swift,metal,h}"
+    simulator.private_header_files = "Sources/**/*.{h}"
     simulator.dependency "Alloy/Shaders", "~> 0.14.2"
     simulator.frameworks = "XCTest","UIKit","Foundation","QuartzCore"
   end

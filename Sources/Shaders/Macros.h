@@ -1,5 +1,5 @@
-#ifndef Definitions_h
-#define Definitions_h
+#ifndef Macros_h
+#define Macros_h
 
 // MARK: - Generate Template Kernels
 
@@ -26,4 +26,4 @@ if (!deviceSupportsNonuniformThreadgroups) {                                    
 }
 
 
-#endif /* Definitions_h */
+#endif /* Macros_h */

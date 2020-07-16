@@ -1,5 +1,5 @@
 #include <metal_stdlib>
-#include "Definitions.h"
+#include "Macros.h"
 
 using namespace metal;
 
