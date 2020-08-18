@@ -1,8 +1,9 @@
-import XCTest
 import Alloy
+import DeviceKit
 #if !targetEnvironment(simulator)
 import ResourcesBridge
 #endif
+import XCTest
 
 open class SnapshotTestCase: XCTestCase {
     
@@ -106,7 +107,7 @@ open class SnapshotTestCase: XCTestCase {
     /// - Returns: String including function name, line and device description.
     public func testName(funcName: String = #function,
                          line: Int = #line) -> String {
-        return "\(funcName)-\(line)-\(UIDevice.modelName)"
+        return "\(funcName)-\(line)"
     }
     
     /// Test `XCUIElement`.
@@ -209,7 +210,7 @@ open class SnapshotTestCase: XCTestCase {
 
         let fileExtension = ".compressedTexture"
         let referenceScreenshotPath = self.snapshotsReferencesFolder
-                                    + testName.sanitizedPathComponent
+                                    + "\(testName)-\(Device.current.description)".sanitizedPathComponent
                                     + fileExtension
         
         if !rects.isEmpty {

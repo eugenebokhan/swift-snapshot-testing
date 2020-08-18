@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = "SwiftSnapshotTesting"
-  s.version = "0.1.2"
+  s.version = "0.1.3"
 
   s.summary = "Swift Snapshot Testing"
   s.homepage = "https://github.com/eugenebokhan/SwiftSnapshotTesting"
@@ -24,14 +24,16 @@ Pod::Spec.new do |s|
     device.source_files = "Sources/**/*.{swift,metal,h}"
     device.private_header_files = "Sources/**/*.{h}"
     device.dependency "ResourcesBridge", "~> 0.0.1"
-    device.dependency "Alloy/Shaders", "~> 0.14.2"
+    device.dependency "Alloy/Shaders", "~> 0.14.0"
+    device.dependency "DeviceKit"
     device.frameworks = "XCTest","UIKit","Foundation","QuartzCore"
   end
   
   s.subspec 'Simulator' do |simulator|
     simulator.source_files = "Sources/**/*.{swift,metal,h}"
     simulator.private_header_files = "Sources/**/*.{h}"
-    simulator.dependency "Alloy/Shaders", "~> 0.14.2"
+    simulator.dependency "Alloy/Shaders", "~> 0.14.0"
+    simulator.dependency "DeviceKit"
     simulator.frameworks = "XCTest","UIKit","Foundation","QuartzCore"
   end
   
