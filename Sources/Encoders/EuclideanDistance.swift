@@ -74,10 +74,10 @@ final class EuclideanDistance {
         let blockSize = BlockSize(width: blockSizeWidth,
                                   height: blockSizeHeight)
 
-        encoder.set(textures: [textureOne,
-                               textureTwo])
-        encoder.set(blockSize, at: 0)
-        encoder.set(threshold, at: 1)
+        encoder.setTextures(textureOne,
+                            textureTwo)
+        encoder.setValue(blockSize, at: 0)
+        encoder.setValue(threshold, at: 1)
         encoder.setBuffer(resultBuffer,
                           offset: 0,
                           index: 2)

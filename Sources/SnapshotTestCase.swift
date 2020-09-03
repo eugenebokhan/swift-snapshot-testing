@@ -291,9 +291,9 @@ open class SnapshotTestCase: XCTestCase {
                                 threshold: configuration.comparisonPolicy.threshold,
                                 resultBuffer: distanceResultBuffer,
                                 in: commandBuffer)
-                self.textureDifference(sourceTextureOne: texture,
-                                       sourceTextureTwo: referenceTexture,
-                                       destinationTexture: differenceTexture,
+                self.textureDifference(sourceOne: texture,
+                                       sourceTwo: referenceTexture,
+                                       destination: differenceTexture,
                                        color: configuration.diffHighlightColor,
                                        threshold: configuration.comparisonPolicy.threshold,
                                        in: commandBuffer)
