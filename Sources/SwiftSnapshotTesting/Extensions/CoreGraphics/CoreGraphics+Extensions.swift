@@ -1,4 +1,4 @@
-import Foundation
+import CoreGraphics
 
 extension CGRect {
     func normalized(reference: CGRect) -> CGRect {
