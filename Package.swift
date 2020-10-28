@@ -16,7 +16,7 @@ let package = Package(
         .package(url: "https://github.com/s1ddok/Alloy.git",
                  .upToNextMinor(from: "0.16.3")),
         .package(url: "https://github.com/devicekit/DeviceKit.git",
-                 .upToNextMinor(from: "4.0.0")),
+                 .upToNextMinor(from: "4.2.1")),
         .package(url: "https://github.com/eugenebokhan/ResourcesBridge.git",
                  .upToNextMinor(from: "0.0.3"))
     ],
