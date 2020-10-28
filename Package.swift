@@ -14,11 +14,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/s1ddok/Alloy.git",
-                 .branch("swiftpm2")),
+                 .upToNextMinor(from: "0.16.3")),
         .package(url: "https://github.com/devicekit/DeviceKit.git",
-                 from: "4.0.0"),
+                 .upToNextMinor(from: "4.0.0")),
         .package(url: "https://github.com/eugenebokhan/ResourcesBridge.git",
-                 from: "0.0.2")
+                 .upToNextMinor(from: "0.0.3"))
     ],
     targets: [
         .target(name: "SwiftSnapshotTesting",
@@ -27,15 +27,6 @@ let package = Package(
                     "DeviceKit",
                     "ResourcesBridge"
                 ],
-                resources: [
-                    .process("Shaders/Shaders.metal"),
-                ],
-                swiftSettings: [
-                    .define("SwiftPM")
-                ],
-                linkerSettings: [
-                    .linkedFramework("Metal"),
-                    .linkedFramework("MetalPerformanceShaders")
-                ])
+                resources: [.process("Shaders/Shaders.metal")])
     ]
 )

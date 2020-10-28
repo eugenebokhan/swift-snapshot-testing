@@ -1,5 +1,4 @@
 import Alloy
-import Metal
 
 final class EuclideanDistance {
 
