@@ -205,7 +205,7 @@ open class SnapshotTestCase: XCTestCase {
                        recording: Bool = false) throws {
         
         #if !targetEnvironment(simulator)
-        self.bridge.waitForConnection()
+        try self.bridge.waitForConnection()
         #endif
 
         let fileExtension = ".compressedTexture"
@@ -249,8 +249,8 @@ open class SnapshotTestCase: XCTestCase {
             
             try textureData.write(to: referenceURL)
             #else
-            try self.bridge.writeResourceSynchronously(resource: textureData,
-                                                       at: referenceScreenshotPath) { progress in
+            try self.bridge.writeResource(textureData,
+                                          at: referenceScreenshotPath) { progress in
                 #if DEBUG
                 print("Sending reference: \(progress)")
                 #endif
@@ -266,7 +266,7 @@ open class SnapshotTestCase: XCTestCase {
             #if targetEnvironment(simulator)
             data = try Data(contentsOf: URL(fileURLWithPath: referenceScreenshotPath))
             #else
-            data = try self.bridge.readResourceSynchronously(at: referenceScreenshotPath) { progress in
+            data = try self.bridge.readResource(from: referenceScreenshotPath) { progress in
                 #if DEBUG
                 print("Receiving: \(progress)")
                 #endif

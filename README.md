@@ -22,10 +22,11 @@ Internally `SwiftSnapshotTesting` operates with [`MTLTextures`](https://develope
 * Swift `5.2`
 * iOS `11.0`
 
-## Install via [`Cocoapods`](https://cocoapods.org)
+## Install via [SwiftPM](https://swift.org/package-manager/)
 
-```ruby
-pod 'SwiftSnapshotTesting'
+```swift
+.package(url: "https://github.com/eugenebokhan/SwiftSnapshotTesting.git",
+         .upToNextMinor(from: "0.1.6"))
 ```
 
 ## How To Use
@@ -74,6 +75,15 @@ pod 'SwiftSnapshotTesting'
 
   * `screenshot` - screenshot to test.
   * `ignorables` - UI elements to ignore. `Ignorable` can be `XCUIElement`, custom `CGRect` or predefined `.statusBar`.
+
+## Info.plist configuration
+
+In order for `SwiftSnapshotTesting` to work when running on iOS 14, you will have to include two keys in your app's Info.plist file.
+The keys are `Privacy - Local Network Usage Description` (`NSLocalNetworkUsageDescription`) and `Bonjour services` (`NSBonjourServices`).
+For the privacy key, include a human-readable description of what benefit the user gets by allowing your app to access devices on the local network.
+The Bonjour services key is an array of service types that your app will browse for. For `SwiftSnapshotTesting`, he value of this key should be `_ResourcesBridge._tcp`.
+
+**If you do not configure the above keys properly, then `SwiftSnapshotTesting` won't work on real devices.**
 
 # XCTAttachment
 

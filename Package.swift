@@ -18,7 +18,7 @@ let package = Package(
         .package(url: "https://github.com/devicekit/DeviceKit.git",
                  .upToNextMinor(from: "4.2.1")),
         .package(url: "https://github.com/eugenebokhan/ResourcesBridge.git",
-                 .upToNextMinor(from: "0.0.3"))
+                 .upToNextMinor(from: "0.0.4"))
     ],
     targets: [
         .target(name: "SwiftSnapshotTesting",
