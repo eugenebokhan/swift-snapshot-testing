@@ -14,11 +14,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/s1ddok/Alloy.git",
-                 .upToNextMinor(from: "0.16.3")),
+                 .upToNextMajor(from: "0.17.0")),
         .package(url: "https://github.com/devicekit/DeviceKit.git",
-                 .upToNextMinor(from: "4.2.1")),
+                 .upToNextMajor(from: "4.2.1")),
         .package(url: "https://github.com/eugenebokhan/ResourcesBridge.git",
-                 .upToNextMinor(from: "0.0.4"))
+                 .upToNextMajor(from: "0.0.4"))
     ],
     targets: [
         .target(name: "SwiftSnapshotTesting",
